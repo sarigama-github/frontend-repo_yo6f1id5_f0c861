@@ -1,13 +1,57 @@
-import Spline from '@splinetool/react-spline';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
+
+// Lazy-load Spline to avoid any synchronous render issues
+const Spline = lazy(() => import('@splinetool/react-spline'));
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    console.error('Hero/Spline error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? null;
+    }
+    return this.props.children;
+  }
+}
 
 export default function Hero() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const FallbackBg = (
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.18),rgba(59,130,246,0.14)_35%,rgba(251,146,60,0.08)_60%,transparent_70%)]" />
+  );
+
   return (
     <section className="relative h-[70vh] md:h-[78vh] w-full overflow-hidden">
-      <div className="absolute inset-0">
-        <Spline scene="https://prod.spline.design/4cHQr84zOGAHOehh/scene.splinecode" style={{ width: '100%', height: '100%' }} />
-      </div>
+      {/* Ensure we always have a visible backdrop */}
+      {FallbackBg}
 
-      {/* Gradient overlay for readability (doesn't block pointer) */}
+      {/* 3D layer (only after mount, with error + suspense fallbacks) */}
+      {mounted && (
+        <div className="absolute inset-0">
+          <ErrorBoundary fallback={FallbackBg}>
+            <Suspense fallback={FallbackBg}>
+              <Spline
+                scene="https://prod.spline.design/4cHQr84zOGAHOehh/scene.splinecode"
+                style={{ width: '100%', height: '100%' }}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+      )}
+
+      {/* Readability overlay */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/10 to-slate-950"></div>
 
       <div className="relative z-10 h-full flex items-center">
